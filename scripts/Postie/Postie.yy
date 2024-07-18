@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Postie",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Postie",
+  "parent":{
+    "name":"Postie",
+    "path":"folders/Postie.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

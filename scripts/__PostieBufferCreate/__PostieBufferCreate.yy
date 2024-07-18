@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__PostieBufferCreate",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__PostieBufferCreate",
+  "parent":{
+    "name":"(System)",
+    "path":"folders/Postie/(System).yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

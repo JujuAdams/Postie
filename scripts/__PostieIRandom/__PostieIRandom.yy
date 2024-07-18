@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"__PostieIRandom",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"__PostieIRandom",
+  "parent":{
+    "name":"(System)",
+    "path":"folders/Postie/(System).yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}
