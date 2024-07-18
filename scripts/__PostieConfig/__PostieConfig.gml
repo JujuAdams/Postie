@@ -23,6 +23,12 @@
 /// account for other headers that may be attached to your buffers by GameMaker or the network.
 #macro POSTIE_ACCUMULATION_MAX_SIZE  1150  //bytes
 
+/// Postie creates correspondants (structs that track buffers being sent between clients) on
+/// demand. You can choose to delete correspondants manually but, in the spirit of ease-of-use,
+/// Postie will also automatically clean up correspondants that have seen no activity for a
+/// certain amout of time, defined by the macro below.
+#macro POSTIE_CORRESPONDANT_TIMEOUT  60  //seconds
+
 /// Postie will keep track of data streams from correspondants for as long as they are actively
 /// sending data. However, if a data stream sits unused for an extended period of time, this may
 /// lead to a memory leak. This is commonly the case when a correspondant has an unreliable

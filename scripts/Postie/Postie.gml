@@ -1,5 +1,29 @@
 // Feather disable al
 
+/// .Destroy()
+/// 
+/// 
+/// .Send(otherID, buffer, [offset=0], [length])
+/// 
+/// 
+/// .Read(buffer, [offset=buffer_tell(buffer)])
+/// 
+/// 
+/// .SetSendCallback(callback, [callbackData=undefined])
+/// 
+/// 
+/// .SetReceiveCallback(callback, [callbackData=undefined])
+/// 
+/// 
+/// .CorrespondantDelete(otherID)
+/// 
+/// 
+/// .CorrespondantExists(otherID)
+/// 
+/// 
+/// .GetPendingBuffers(otherID)
+/// 
+/// 
 /// @param selfID
 
 function Postie(_selfID) constructor
@@ -16,7 +40,7 @@ function Postie(_selfID) constructor
     
     __selfID = _selfID;
     
-    __correspondantStruct = {};
+    __correspondantMap = ds_map_create();
     
     __sendCallback = function(_buffer, _offset, _length, _callbackData)
     {
@@ -39,17 +63,47 @@ function Postie(_selfID) constructor
     
     if (POSTIE_DEBUG_LEVEL >= 2) __PostieTrace(self, " created");
     
+    __cleanUpKey = undefined;
+    __timeSourceCleanUp = time_source_create(time_source_global, 1, time_source_units_seconds, function()
+    {
+        if (ds_map_size(__correspondantMap) > 0)
+        {
+            if (__cleanUpKey != undefined)
+            {
+                __cleanUpKey = ds_map_find_next(__correspondantMap, __cleanUpKey);
+            }
+            
+            if (__cleanUpKey == undefined)
+            {
+                __cleanUpKey = ds_map_find_first(__correspondantMap);
+            }
+            
+            var _correspondantStruct = __correspondantMap[? __cleanUpKey];
+            if ((_correspondantStruct != undefined) && (_correspondantStruct.__lastActivity + 1000*POSTIE_CORRESPONDANT_TIMEOUT < current_time))
+            {
+                if (POSTIE_DEBUG_LEVEL >= 1) __PostieTrace("Warning! ", self, " has cleaned up dormant ", _correspondantStruct);
+                
+                _correspondantStruct.__Destroy();
+                ds_map_delete(__correspondantMap, __cleanUpKey);
+            }
+        }
+    },
+    [], -1);
+    time_source_start(__timeSourceCleanUp);
+    
     
     
     Destroy = function()
     {
         if (POSTIE_DEBUG_LEVEL >= 2) __PostieTrace(self, " destroyed");
         
-        var _namesArray = struct_get_names(__correspondantStruct);
+        time_source_destroy(__timeSourceCleanUp);
+        
+        var _array = ds_map_values_to_array(__correspondantMap);
         var _i = 0;
-        repeat(array_length(_namesArray))
+        repeat(array_length(_array))
         {
-            __correspondantStruct[$ _namesArray[_i]].__Destroy();
+            _array[_i].__Destroy();
             ++_i;
         }
         
@@ -59,15 +113,15 @@ function Postie(_selfID) constructor
             if (POSTIE_DEBUG_LEVEL >= 2) __PostieTrace(self, " already destroyed");
         }
         
-        SetSendCallback     = function() {}
-        SetReceiveCallback  = function() {}
-        CorrespondantAdd    = function() {}
-        CorrespondantDelete = function() {}
-        CorrespondantExists = function() { return false; }
-        Send                = function() {}
-        Read                = function() {}
-        __ExecuteSend       = function() {}
-        __ExecuteRead       = function() {}
+        SetSendCallback       = function() {}
+        SetReceiveCallback    = function() {}
+        CorrespondantDelete   = function() {}
+        CorrespondantExists   = function() { return false; }
+        Send                  = function() {}
+        Read                  = function() {}
+        __CorrespondantEnsure = function() {}
+        __ExecuteSend         = function() {}
+        __ExecuteRead         = function() {}
     }
     
     SetSendCallback = function(_callback, _callbackData = undefined)
@@ -86,27 +140,6 @@ function Postie(_selfID) constructor
         __receiveCallbackData = _callbackData;
     }
     
-    CorrespondantAdd = function(_otherID)
-    {
-        if (not is_string(_otherID))
-        {
-            __PostieError("Identifier for .CorrespondantAdd() must be a string (typeof=", typeof(_otherID), ")");
-        }
-        
-        if (_otherID == "")
-        {
-            __PostieError("Identifier for .CorrespondantAdd() cannot be an empty string");
-        }
-        
-        if (struct_exists(__correspondantStruct, _otherID))
-        {
-            if (POSTIE_DEBUG_LEVEL >= 1) __PostieTrace("Warning! ", self, " correspondant \"", _otherID, "\" already exists");
-            return;
-        }
-        
-        __correspondantStruct[$ _otherID] = new __PostieClassCorrespondant(self, _otherID);
-    }
-    
     CorrespondantDelete = function(_otherID)
     {
         if (not is_string(_otherID))
@@ -119,7 +152,7 @@ function Postie(_selfID) constructor
             __PostieError("Identifier for .CorrespondantDelete() cannot be an empty string");
         }
         
-        var _correspondant = __correspondantStruct[$ _otherID];
+        var _correspondant = __correspondantMap[? _otherID];
         if (_correspondant != undefined)
         {
             if (POSTIE_DEBUG_LEVEL >= 3) __PostieTrace(self, " deleting correspondant \"", _otherID, "\" for ", self);
@@ -130,7 +163,7 @@ function Postie(_selfID) constructor
             if (POSTIE_DEBUG_LEVEL >= 1) __PostieTrace("Warning! ", self, " correspondant \"", _otherID, "\" doesn't exist");
         }
         
-        struct_remove(__correspondantStruct, _otherID);
+        ds_map_delete(__correspondantMap, _otherID);
     }
     
     CorrespondantExists = function(_otherID)
@@ -145,7 +178,7 @@ function Postie(_selfID) constructor
             __PostieError("Identifier for .CorrespondantExists() cannot be an empty string");
         }
         
-        return struct_exists(__correspondantStruct, _otherID);
+        return ds_map_exists(__correspondantMap, _otherID);
     }
     
     GetPendingBuffers = function(_otherID)
@@ -160,7 +193,7 @@ function Postie(_selfID) constructor
             __PostieError("Identifier for .GetPendingBuffers() cannot be an empty string");
         }
         
-        var _correspondant = __correspondantStruct[$ _otherID];
+        var _correspondant = __correspondantMap[? _otherID];
         return (_correspondant == undefined)? undefined : _correspondant.__GetPendingBuffers();
     }
     
@@ -183,8 +216,7 @@ function Postie(_selfID) constructor
         
         if (POSTIE_DEBUG_LEVEL >= 3) __PostieTrace(self, " sending to \"", _otherID, "\" (", _buffer, ", offset=", _offset, ", length=", _length, ")");
         
-        var _correspondant = __correspondantStruct[$ _otherID];
-        if (_correspondant != undefined) _correspondant.__Send(_buffer, _offset, _length);
+        __CorrespondantEnsure(_otherID).__Send(_buffer, _offset, _length);
     }
     
     Read = function(_buffer, _overallOffset = buffer_tell(_buffer))
@@ -202,13 +234,7 @@ function Postie(_selfID) constructor
         if (POSTIE_DEBUG_LEVEL >= 3) __PostieTrace(self, " found overall length of ", _overallLength, " bytes (", _buffer, ")");
         
         var _sendID = buffer_read(_buffer, buffer_string);
-        
-        var _correspondant = __correspondantStruct[$ _sendID];
-        if (_correspondant == undefined)
-        {
-            if (POSTIE_DEBUG_LEVEL >= 1) __PostieTrace("Warning! ", self, " reading from \"", _sendID, "\" but we don't have that correspondant (", _buffer, ")");
-            return;
-        }
+        var _correspondant = __CorrespondantEnsure(_sendID);
         
         var _receiveID = buffer_read(_buffer, buffer_string);
         if (_receiveID != __selfID)
@@ -221,6 +247,20 @@ function Postie(_selfID) constructor
         
         _correspondant.__Read(_buffer, _overallOffset + _overallLength);
         buffer_seek(_buffer, buffer_seek_start, _overallOffset + _overallLength);
+    }
+    
+    __CorrespondantEnsure = function(_otherID)
+    {
+        var _correspondant = __correspondantMap[? _otherID];
+        if (_correspondant == undefined)
+        {
+            if (POSTIE_DEBUG_LEVEL >= 2) __PostieTrace(self, " ensuring new correspondant ", _correspondant);
+            
+            _correspondant = new __PostieClassCorrespondant(self, _otherID);
+            __correspondantMap[? _otherID] = _correspondant;
+        }
+        
+        return _correspondant;
     }
     
     __ExecuteSend = function(_otherID, _buffer, _offset, _length)

@@ -69,7 +69,8 @@ function __PostieClassStream(_parent, _streamUUID) constructor
         if (_index < __expectingIndex)
         {
             if (POSTIE_DEBUG_LEVEL >= 1) __PostieTrace("Warning! ", self, " handling index ", _index, " which has already been handled");
-            return;
+            
+            return false; //Buffer was not processing successfully
         }
         
         if (_index > __expectingIndex)
@@ -82,12 +83,14 @@ function __PostieClassStream(_parent, _streamUUID) constructor
             buffer_copy(_buffer, buffer_tell(_buffer), _length, _copyBuffer, 0);
             __pendingMap[? _index] = _copyBuffer;
             
-            return;
+            return false; //Buffer was not processing successfully
         }
         
         if (POSTIE_DEBUG_LEVEL >= 2) __PostieTrace(self, " reading ", _buffer, " with expected index ", __expectingIndex);
         
         __Read(_buffer, _endPos);
+        
+        return true; //Success!
     }
     
     __GetPendingBuffers = function()

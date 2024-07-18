@@ -1,7 +1,6 @@
 // Feather disable all
 
 postie = new Postie("Bob");
-postie.CorrespondantAdd("Alice");
 
 postie.SetSendCallback(function(_otherID, _buffer, _offset, _length)
 {

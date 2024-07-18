@@ -16,6 +16,8 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
     __streamUUID = int64(__PostieIRandom(0x7FFF_FFFF_FFFF_FFFF));
     __outgoingStreamIndex = 0;
     
+    __lastActivity = -infinity;
+    
     __streamMap = ds_map_create();
     
     __accumulated = false;
@@ -30,33 +32,33 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
     __headerSize = buffer_tell(__accumulationBuffer);
     buffer_write(__accumulationBuffer, __POSTIE_DTYPE_STREAM_INDEX, 0);
     
-    __streamCleanUpKey = undefined;
-    __timeSourceCleanUpStreams = time_source_create(time_source_global, 1, time_source_units_seconds, function()
+    __cleanUpKey = undefined;
+    __timeSourceCleanUp = time_source_create(time_source_global, 1, time_source_units_seconds, function()
     {
         if (ds_map_size(__streamMap) > 0)
         {
-            if (__streamCleanUpKey != undefined)
+            if (__cleanUpKey != undefined)
             {
-                __streamCleanUpKey = ds_map_find_next(__streamMap, __streamCleanUpKey);
+                __cleanUpKey = ds_map_find_next(__streamMap, __cleanUpKey);
             }
             
-            if (__streamCleanUpKey == undefined)
+            if (__cleanUpKey == undefined)
             {
-                __streamCleanUpKey = ds_map_find_first(__streamMap);
+                __cleanUpKey = ds_map_find_first(__streamMap);
             }
             
-            var _streamStruct = __streamMap[? __streamCleanUpKey];
+            var _streamStruct = __streamMap[? __cleanUpKey];
             if ((_streamStruct != undefined) && (_streamStruct.__lastRead + 1000*POSTIE_STREAM_TIMEOUT < current_time))
             {
-                if (POSTIE_DEBUG_LEVEL >= 1) __PostieTrace("Warning! ", self, " has cleaned up unused stream ", ptr(__streamCleanUpKey));
+                if (POSTIE_DEBUG_LEVEL >= 1) __PostieTrace("Warning! ", self, " has cleaned up dormant ", _streamStruct);
                 
                 _streamStruct.__Destroy();
-                ds_map_delete(__streamMap, __streamCleanUpKey);
+                ds_map_delete(__streamMap, __cleanUpKey);
             }
         }
     },
     [], -1);
-    time_source_start(__timeSourceCleanUpStreams);
+    time_source_start(__timeSourceCleanUp);
     
     
     
@@ -81,10 +83,18 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
         if (POSTIE_SIMULATE_CONNECTION)
         {
             _streamStruct.__ReadSimulation(_buffer, _index, _endPos);
+            
+            //Always update read time when simulating a connection
+            __lastActivity = current_time;
         }
         else
         {
-            _streamStruct.__ReadIndex(_buffer, _index, _endPos);
+            var _successfulRead = _streamStruct.__ReadIndex(_buffer, _index, _endPos);
+            if (_successfulRead)
+            {
+                //Only update our last read time if the buffer has the correct index and was accepted
+                __lastActivity = current_time;
+            }
         }
     }
     
@@ -115,6 +125,8 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
         if (_length <= 0) return;
         
         if (POSTIE_DEBUG_LEVEL >= 3) __PostieTrace(self, " accumulating ", _length, " bytes (", _buffer, ", offset=", _offset, ", parent=", __parent, ")");
+        
+        __lastActivity = current_time;
         
         var _lengthRemaining = _length;
         var _copyOffset = _offset;
@@ -180,7 +192,7 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
         __PostieBufferDelete(__accumulationBuffer);
         
         time_source_destroy(__timeSourcePeriodicFlush);
-        time_source_destroy(__timeSourceCleanUpStreams);
+        time_source_destroy(__timeSourceCleanUp);
         
         var _array = ds_map_values_to_array(__streamMap);
         var _i = 0;
