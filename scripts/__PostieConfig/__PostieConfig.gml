@@ -3,7 +3,7 @@
 /// How many debug messages to emit during operation. This is useful for debugging the library or
 /// tracking down bugs.
 /// 
-/// 0 = No messages other than errors
+/// 0 = No messages other than fatal errors
 /// 1 = Warnings only
 /// 2 = Create and destroy messages, and information about data stream ordering
 /// 3 = Verbose output

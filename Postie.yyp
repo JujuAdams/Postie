@@ -29,6 +29,7 @@
     {"id":{"name":"__PostieClassCorrespondant","path":"scripts/__PostieClassCorrespondant/__PostieClassCorrespondant.yy",},},
     {"id":{"name":"__PostieClassStream","path":"scripts/__PostieClassStream/__PostieClassStream.yy",},},
     {"id":{"name":"__PostieConfig","path":"scripts/__PostieConfig/__PostieConfig.yy",},},
+    {"id":{"name":"__PostieConstants","path":"scripts/__PostieConstants/__PostieConstants.yy",},},
     {"id":{"name":"__PostieError","path":"scripts/__PostieError/__PostieError.yy",},},
     {"id":{"name":"__PostieIRandom","path":"scripts/__PostieIRandom/__PostieIRandom.yy",},},
     {"id":{"name":"__PostieIRandomRange","path":"scripts/__PostieIRandomRange/__PostieIRandomRange.yy",},},

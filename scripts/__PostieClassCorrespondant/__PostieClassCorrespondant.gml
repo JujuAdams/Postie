@@ -25,12 +25,12 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
     
     if (POSTIE_DEBUG_LEVEL >= 2) __PostieTrace(self, " created for ", __parent, ", outbound stream UUID = ", ptr(__streamUUID), ", accumulating using ", __accumulationBuffer);
     
-    buffer_write(__accumulationBuffer, __POSTIE_DTYPE_OVERALL_LENGTH, 0); //Overall length of message
+    buffer_write(__accumulationBuffer, __POSTIE_DATATYPE_OVERALL_LENGTH, 0); //Overall length of message
     buffer_write(__accumulationBuffer, buffer_string, __parent.__selfID);
     buffer_write(__accumulationBuffer, buffer_string, __otherID);
-    buffer_write(__accumulationBuffer, __POSTIE_DTYPE_STREAM_UUID, __streamUUID);
+    buffer_write(__accumulationBuffer, __POSTIE_DATATYPE_STREAM_UUID, __streamUUID);
     __headerSize = buffer_tell(__accumulationBuffer);
-    buffer_write(__accumulationBuffer, __POSTIE_DTYPE_STREAM_INDEX, 0);
+    buffer_write(__accumulationBuffer, __POSTIE_DATATYPE_STREAM_INDEX, 0);
     
     __cleanUpKey = undefined;
     __timeSourceCleanUp = time_source_create(time_source_global, 1, time_source_units_seconds, function()
@@ -64,7 +64,7 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
     
     __Read = function(_buffer, _endPos)
     {
-        var _streamUUID = buffer_read(_buffer, __POSTIE_DTYPE_STREAM_UUID);
+        var _streamUUID = buffer_read(_buffer, __POSTIE_DATATYPE_STREAM_UUID);
         
         if (POSTIE_DEBUG_LEVEL >= 3) __PostieTrace(self, " found stream ", ptr(_streamUUID), " (", _buffer, ")");
         
@@ -77,7 +77,7 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
             __streamMap[? _streamUUID] = _streamStruct;
         }
         
-        var _index = buffer_read(_buffer, __POSTIE_DTYPE_STREAM_INDEX);
+        var _index = buffer_read(_buffer, __POSTIE_DATATYPE_STREAM_INDEX);
         if (POSTIE_DEBUG_LEVEL >= 3) __PostieTrace(self, " found index ", _index, " for ", _streamStruct);
         
         if (POSTIE_SIMULATE_CONNECTION)
@@ -133,15 +133,15 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
         while(_lengthRemaining > 0)
         {
             var _accumulationSpaceRemaining = POSTIE_ACCUMULATION_MAX_SIZE - buffer_tell(__accumulationBuffer);
-            if (_accumulationSpaceRemaining <= buffer_sizeof(__POSTIE_DTYPE_PART_LENGTH))
+            if (_accumulationSpaceRemaining <= buffer_sizeof(__POSTIE_DATATYPE_PART_LENGTH))
             {
                 __Flush();
                 _accumulationSpaceRemaining = POSTIE_ACCUMULATION_MAX_SIZE - buffer_tell(__accumulationBuffer);
             }
             
-            var _partLength = min(_lengthRemaining, _accumulationSpaceRemaining - buffer_sizeof(__POSTIE_DTYPE_PART_LENGTH));
+            var _partLength = min(_lengthRemaining, _accumulationSpaceRemaining - buffer_sizeof(__POSTIE_DATATYPE_PART_LENGTH));
             
-            buffer_write(__accumulationBuffer, __POSTIE_DTYPE_PART_LENGTH, _partLength);
+            buffer_write(__accumulationBuffer, __POSTIE_DATATYPE_PART_LENGTH, _partLength);
             buffer_copy(_buffer, _copyOffset, _partLength, __accumulationBuffer, buffer_tell(__accumulationBuffer));
             buffer_seek(__accumulationBuffer, buffer_seek_relative, _partLength);
             
@@ -152,12 +152,12 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
         }
         
         var _accumulationSpaceRemaining = POSTIE_ACCUMULATION_MAX_SIZE - buffer_tell(__accumulationBuffer);
-        if (_accumulationSpaceRemaining < buffer_sizeof(__POSTIE_DTYPE_PART_LENGTH))
+        if (_accumulationSpaceRemaining < buffer_sizeof(__POSTIE_DATATYPE_PART_LENGTH))
         {
             __Flush();
         }
         
-        buffer_write(__accumulationBuffer, __POSTIE_DTYPE_PART_LENGTH, -1);
+        buffer_write(__accumulationBuffer, __POSTIE_DATATYPE_PART_LENGTH, -1);
     }
     
     __Flush = function()
@@ -166,7 +166,7 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
         {
             if (POSTIE_DEBUG_LEVEL >= 3) __PostieTrace(self, " flushing accumulation buffer (index=", __outgoingStreamIndex, ", length=", buffer_tell(__accumulationBuffer), ", parent=", __parent, ")");
             
-            buffer_poke(__accumulationBuffer, 0, __POSTIE_DTYPE_OVERALL_LENGTH, buffer_tell(__accumulationBuffer));
+            buffer_poke(__accumulationBuffer, 0, __POSTIE_DATATYPE_OVERALL_LENGTH, buffer_tell(__accumulationBuffer));
             __parent.__ExecuteSend(__otherID, __accumulationBuffer, 0, buffer_tell(__accumulationBuffer));
             
             __accumulated = false;
@@ -174,7 +174,7 @@ function __PostieClassCorrespondant(_parent, _otherID) constructor
             //Increment our packet counter
             ++__outgoingStreamIndex;
             buffer_seek(__accumulationBuffer, buffer_seek_start, __headerSize);
-            buffer_write(__accumulationBuffer, __POSTIE_DTYPE_STREAM_INDEX, __outgoingStreamIndex);
+            buffer_write(__accumulationBuffer, __POSTIE_DATATYPE_STREAM_INDEX, __outgoingStreamIndex);
         }
         
         //time_source_reset() doesn't seem to do what we want?

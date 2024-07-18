@@ -230,7 +230,7 @@ function Postie(_selfID) constructor
         
         buffer_seek(_buffer, buffer_seek_start, _overallOffset);
         
-        var _overallLength = buffer_read(_buffer, __POSTIE_DTYPE_OVERALL_LENGTH);
+        var _overallLength = buffer_read(_buffer, __POSTIE_DATATYPE_OVERALL_LENGTH);
         if (POSTIE_DEBUG_LEVEL >= 3) __PostieTrace(self, " found overall length of ", _overallLength, " bytes (", _buffer, ")");
         
         var _sendID = buffer_read(_buffer, buffer_string);

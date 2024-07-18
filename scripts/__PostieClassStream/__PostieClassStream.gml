@@ -104,7 +104,7 @@ function __PostieClassStream(_parent, _streamUUID) constructor
         
         while(buffer_tell(_buffer) < _endPos)
         {
-            var _length = buffer_read(_buffer, __POSTIE_DTYPE_PART_LENGTH);
+            var _length = buffer_read(_buffer, __POSTIE_DATATYPE_PART_LENGTH);
             if (_length > 0)
             {
                 //Scale up the accumulation buffer if it's too small
